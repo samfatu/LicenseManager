@@ -1,9 +1,9 @@
 import javax.crypto.Cipher;
-import javax.xml.bind.DatatypeConverter;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 
 public class LicenseManager {
     private PublicKey publicKey;
@@ -23,11 +23,11 @@ public class LicenseManager {
 
     public byte[] getSignature() throws Exception {
         System.out.println("Server - Server is being requested...");
-        System.out.println("Server - Incoming Encrypted Text" + (new String(this.clientEncryptedInfo)));
+        System.out.println("Server - Incoming Encrypted Text: " +  Base64.getEncoder().encodeToString(clientEncryptedInfo));
         byte[] decryptedData = this.decrypt(this.clientEncryptedInfo);
         System.out.println("Server - Decrypted Text: " + (new String(decryptedData, StandardCharsets.UTF_8)));
         byte[] hashedData = this.hash(decryptedData);
-        System.out.println("Server - MD5 Plain License Text: " + DatatypeConverter.printHexBinary(hashedData));
+        System.out.println("Server - MD5 Plain License Text: " + Client.byteArrayToHexString(hashedData));
         byte[] signedData = this.encrypt(hashedData);
         System.out.println("Server - Digital Signature: " + (new String(signedData, StandardCharsets.UTF_8)));
 
