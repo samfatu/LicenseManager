@@ -22,12 +22,12 @@ public class Client {
     // TODO: Raporda randomnesstan bahsederken şu linke bak : https://stackoverflow.com/questions/16325057/why-does-rsa-encrypted-text-give-me-different-results-for-the-same-text
 
     public Client() throws Exception {
-        starterLogs();
         try {
             this.getHardwareSpecificInfo();
         } catch (Exception e) {
             e.printStackTrace();
         }
+        starterLogs();
         byte[] publicKeyFile = Client.readFileAsByteArray("public.key");
         KeyFactory kf = KeyFactory.getInstance("RSA");
         this.publicKey = kf.generatePublic(new X509EncodedKeySpec(publicKeyFile));
@@ -83,23 +83,22 @@ public class Client {
         // variable to store the Serial Number
         String serialNumber = null;
 
-        // try block
         try {
 
             // declaring the process to run the command
-            Process SerialNumberProcess
-                    = Runtime.getRuntime().exec(command);
+            Process SerialNumberProcess = Runtime.getRuntime().exec("wmic baseboard get serialnumber");
 
             // getting the input stream using
             // InputStreamReader using Serial Number Process
-            InputStreamReader ISR = new InputStreamReader(
-                    SerialNumberProcess.getInputStream());
+            InputStreamReader ISR = new InputStreamReader(SerialNumberProcess.getInputStream());
 
             // declaring the Buffered Reader
             BufferedReader br = new BufferedReader(ISR);
 
             // reading the serial number using
             // Buffered Reader
+            br.readLine();
+            br.readLine();
             serialNumber = br.readLine().trim();
 
             // waiting for the system to return
@@ -119,9 +118,9 @@ public class Client {
             // giving the serial number the value null
             serialNumber = null;
         }
-
-        // returning the serial number
         return serialNumber;
+        // try block
+
     }
 
     private String getUserSpecificInfo() {
