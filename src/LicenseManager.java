@@ -29,7 +29,7 @@ public class LicenseManager {
         byte[] hashedData = this.hash(decryptedData);
         System.out.println("Server - MD5 Plain License Text: " + Client.byteArrayToHexString(hashedData));
         byte[] signedData = this.encrypt(hashedData);
-        System.out.println("Server - Digital Signature: " + (new String(signedData, StandardCharsets.UTF_8)));
+        System.out.println("Server - Digital Signature: " + Base64.getEncoder().encodeToString(signedData));
 
         return signedData;
     }

@@ -42,12 +42,6 @@ public class Client {
         client.licenseProcess(encryptedInfo);
     }
 
-    private void getHardwareSpecificInfo() throws Exception {
-        this.MAC = Client.getMacAddress();
-        this.DISK_SERIAL = Client.getDiskSerialNumber();
-        this.MOTHERBOARD_SERIAL = Client.getMotherboardSerial();
-    }
-
     public static String getMacAddress() throws Exception {
         InetAddress localHost = InetAddress.getLocalHost();
         NetworkInterface ni = NetworkInterface.getByInetAddress(localHost);
@@ -57,6 +51,7 @@ public class Client {
         for (int i = 0; i < hardwareAddress.length; i++) {
             hexadecimal[i] = String.format("%02X", hardwareAddress[i]);
         }
+
         return String.join(":", hexadecimal);
     }
 
@@ -65,8 +60,9 @@ public class Client {
         String[] commands = {"wmic", "diskdrive", "get", "serialnumber"};
         Process process = runtime.exec(commands);
         String chain = null;
+
         try (BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-            String serialNumber = null;
+            String serialNumber;
             while ((serialNumber = bufferedReader.readLine()) != null) {
                 if (serialNumber.trim().length() > 0) {
                     chain = serialNumber;
@@ -77,81 +73,41 @@ public class Client {
     }
 
     public static String getMotherboardSerial() {
-        // command to be executed on the terminal
         String command = "wmic baseboard get serialnumber";
-
-        // variable to store the Serial Number
-        String serialNumber = null;
+        String serialNumber;
 
         try {
-
-            // declaring the process to run the command
-            Process SerialNumberProcess = Runtime.getRuntime().exec("wmic baseboard get serialnumber");
-
-            // getting the input stream using
-            // InputStreamReader using Serial Number Process
+            Process SerialNumberProcess = Runtime.getRuntime().exec(command);
             InputStreamReader ISR = new InputStreamReader(SerialNumberProcess.getInputStream());
-
-            // declaring the Buffered Reader
             BufferedReader br = new BufferedReader(ISR);
 
-            // reading the serial number using
-            // Buffered Reader
             br.readLine();
             br.readLine();
             serialNumber = br.readLine().trim();
 
-            // waiting for the system to return
-            // the serial number
             SerialNumberProcess.waitFor();
 
-            // closing the Buffered Reader
             br.close();
-        }
-
-        // catch block
-        catch (Exception e) {
-
-            // printing the exception
+        } catch (Exception e) {
             e.printStackTrace();
-
-            // giving the serial number the value null
             serialNumber = null;
         }
-        return serialNumber;
-        // try block
 
+        return serialNumber;
+    }
+
+    private void getHardwareSpecificInfo() throws Exception {
+        MAC = Client.getMacAddress();
+        DISK_SERIAL = Client.getDiskSerialNumber();
+        MOTHERBOARD_SERIAL = Client.getMotherboardSerial();
+        // Mac'te programı çalıştırabilmek için aşağıyı yorumdan çıkarıyoruz
+        //MAC = "Client.getMacAddress()";
+        //DISK_SERIAL = "Client.getDiskSerialNumber()";
+        //MOTHERBOARD_SERIAL = "Client.getMotherboardSerial()";
     }
 
     private String getUserSpecificInfo() {
         return USERNAME + "$" + SERIAL + "$" + MAC + "$" + DISK_SERIAL + "$" + MOTHERBOARD_SERIAL;
-    }
-
-    private byte[] encrypt(String data) throws Exception {
-        Cipher encryptCipher = Cipher.getInstance("RSA");
-        encryptCipher.init(Cipher.ENCRYPT_MODE, publicKey);
-
-        byte[] secretMessageBytes = data.getBytes(StandardCharsets.UTF_8);
-
-        return encryptCipher.doFinal(secretMessageBytes);
-    }
-
-    private Signature decrypt(byte[] encryptedData) throws Exception {
-        Signature signature = Signature.getInstance("SHA256withRSA");
-        signature.initVerify(publicKey);
-        signature.update(encryptedData);
-        return signature;
-    }
-
-    private byte[] hash(byte[] data) throws Exception {
-        MessageDigest md = MessageDigest.getInstance("MD5");
-        md.update(data);
-        return md.digest();
-    }
-
-    private boolean verifySignature(byte[] signature) throws Exception {
-        byte[] hashedInfo = hash(getUserSpecificInfo().getBytes(StandardCharsets.UTF_8));
-        return decrypt(hashedInfo).verify(signature);
     }
 
     private void starterLogs() {
@@ -192,7 +148,6 @@ public class Client {
         LicenseManager licenseManager = new LicenseManager(encryptedInfo);
 
         System.out.println("Client - Raw License Text: " + this.getUserSpecificInfo());
-        // TODO: Yiyo
         System.out.println("Client - Encrypted License Text: " + Base64.getEncoder().encodeToString(encryptedInfo));
         System.out.println("Client - MD5 License Text: " + Client.byteArrayToHexString(
                 this.hash(this.getUserSpecificInfo().getBytes(StandardCharsets.UTF_8))));
@@ -203,7 +158,47 @@ public class Client {
         } else {
             System.out.println("Client - Failed. The license file content can not be verified.");
         }
+
         Client.writeFile("license.txt", signature);
+    }
+
+
+    private byte[] encrypt(String data) throws Exception {
+        Cipher encryptCipher = Cipher.getInstance("RSA");
+        encryptCipher.init(Cipher.ENCRYPT_MODE, publicKey);
+
+        byte[] secretMessageBytes = data.getBytes(StandardCharsets.UTF_8);
+
+        return encryptCipher.doFinal(secretMessageBytes);
+    }
+
+    private Signature decrypt(byte[] encryptedData) throws Exception {
+        Signature signature = Signature.getInstance("SHA256withRSA");
+        signature.initVerify(publicKey);
+        signature.update(encryptedData);
+        return signature;
+    }
+
+    private byte[] hash(byte[] data) throws Exception {
+        MessageDigest md = MessageDigest.getInstance("MD5");
+        md.update(data);
+        return md.digest();
+    }
+
+    private boolean verifySignature(byte[] signature) throws Exception {
+        byte[] hashedInfo = hash(getUserSpecificInfo().getBytes(StandardCharsets.UTF_8));
+        return decrypt(hashedInfo).verify(signature);
+    }
+
+    public static String byteArrayToHexString(byte[] bytes) {
+        if (bytes == null || bytes.length == 0) {
+            return "";
+        }
+        final StringBuilder sb = new StringBuilder();
+        for (byte b : bytes) {
+            sb.append(String.format("%02x", b & 0xff));
+        }
+        return sb.toString();
     }
 
     public static byte[] readFileAsByteArray(String filePath) {
@@ -212,6 +207,7 @@ public class Client {
         try {
             content = Files.readAllBytes(file.toPath());
         } catch (IOException e) {
+            System.out.println("Error when reading the file! Be sure that the key files are in the same directory.");
             e.printStackTrace();
         }
         return content;
@@ -227,18 +223,8 @@ public class Client {
             oFile.write(content);
             oFile.close();
         } catch (IOException e){
+            System.out.println("Error when creating the license file!");
             e.printStackTrace();
         }
-    }
-
-    public static String byteArrayToHexString(byte[] bytes) {
-        if (bytes == null || bytes.length == 0) {
-            return "";
-        }
-        final StringBuilder sb = new StringBuilder();
-        for (byte b : bytes) {
-            sb.append(String.format("%02x", b & 0xff));
-        }
-        return sb.toString();
     }
 }
