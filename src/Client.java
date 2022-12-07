@@ -19,8 +19,6 @@ public class Client {
     private static String MOTHERBOARD_SERIAL;
     private PublicKey publicKey;
 
-    // TODO: Raporda randomnesstan bahsederken şu linke bak : https://stackoverflow.com/questions/16325057/why-does-rsa-encrypted-text-give-me-different-results-for-the-same-text
-
     public Client() throws Exception {
         try {
             this.getHardwareSpecificInfo();
@@ -100,10 +98,6 @@ public class Client {
         MAC = Client.getMacAddress();
         DISK_SERIAL = Client.getDiskSerialNumber();
         MOTHERBOARD_SERIAL = Client.getMotherboardSerial();
-        // Mac'te programı çalıştırabilmek için aşağıyı yorumdan çıkarıyoruz
-        //MAC = "Client.getMacAddress()";
-        //DISK_SERIAL = "Client.getDiskSerialNumber()";
-        //MOTHERBOARD_SERIAL = "Client.getMotherboardSerial()";
     }
 
     private String getUserSpecificInfo() {
